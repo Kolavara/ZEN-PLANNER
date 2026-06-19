@@ -429,23 +429,40 @@ body {
 }
 
 @media print {
+    @page {
+        margin: 0; /* Removes white borders and hides headers/footers */
+        size: auto;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
     .cover-screen-ui {
         display: none !important;
     }
     
     .page-cover {
         display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
         height: 100vh !important;
         width: 100vw !important;
     }
 
     .cover-print-ui {
-        position: relative !important;
+        position: fixed !important;
+        top: 0;
+        left: 0;
         opacity: 1 !important;
-        z-index: 1 !important;
-        width: 100% !important;
-        height: 100% !important;
+        z-index: 9999 !important;
+        width: 100vw !important;
+        height: 100vh !important;
         display: block !important;
+        margin: 0;
+        padding: 0;
     }
     
     .cover-print-ui img {
