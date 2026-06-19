@@ -327,52 +327,8 @@ function renderCover(container) {
             <div class="cover-credit">JDRAO</div>
         </div>
         
-        <div class="cover-print-ui poster-container">
-            <div class="poster-main">
-                <div class="poster-left-col">
-                    <div class="poster-left-top">
-                        <div class="poster-text-large">禪<br>意<br>計<br>畫</div>
-                        <div class="poster-stacked-boxes">
-                            <div class="poster-box-vertical">手寫日記</div>
-                            <div class="poster-box-vertical poster-smarter">THE SMARTER</div>
-                        </div>
-                    </div>
-                    <div class="poster-box-horizontal">DIARY</div>
-                    <div class="poster-box-date">
-                        <span>JAN.</span>
-                        <span class="date-num">01</span>
-                        <div class="date-divider">/</div>
-                        <span>DEC.</span>
-                        <span class="date-num">31</span>
-                        <div class="date-divider">/</div>
-                        <span class="date-year">${CURRENT_YEAR}</span>
-                    </div>
-                </div>
-                
-                <div class="poster-center-img">
-                    <img src="cover_umbrella.png" alt="Mood Image">
-                </div>
-                
-                <div class="poster-right-col">
-                    <div class="poster-credits">
-                        <span>原 作 | JD RAO</span>
-                        <span>監 製 | ZEN PLANNER</span>
-                        <span>美 術 | MINIMALIST</span>
-                        <span>燈 光 | PRODUCTIVITY</span>
-                        <span>道 具 | SYSTEM</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="poster-bottom-text">
-                沒有怨恨、沒有後悔，在低端世界裡淋雨吹風
-            </div>
-            
-            <div class="poster-footer">
-                <span>ZEN PLANNER EXHIBITION HALL</span>
-                <span>${CURRENT_YEAR}.01.01-12.31</span>
-                <span>ZENPLANNER.MYPORTFOLIO.COM</span>
-            </div>
+        <div class="cover-print-ui">
+            <img src="custom-print-cover.jpg" alt="Zen Planner Custom Cover" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
     `;
     container.appendChild(page);
