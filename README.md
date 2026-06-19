@@ -5,7 +5,7 @@
 ![Zen Planner](./cover-bg.png)
 
 ---
-
+live now : https://zen-planner.onrender.com
 ## ✨ Features
 
 ### 📖 Comprehensive Planning System
