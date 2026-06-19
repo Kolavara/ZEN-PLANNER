@@ -1237,6 +1237,8 @@ function setupKeyboard() {
 
 // ─── Initialization ─────────────────────────────────────────
 function init() {
+    document.title = `Zen Planner | ${CURRENT_YEAR} Digital Planner by JDRAO`;
+    
     if (localStorage.getItem('zen-bw-mode') === 'true') {
         document.body.classList.add('bw-mode');
     }
