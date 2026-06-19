@@ -417,9 +417,15 @@ body {
     background-position: center;
 }
 
-/* --- Print Poster Cover (Hidden by Default) --- */
+/* --- Print Poster Cover (Hidden by Default but Preloaded) --- */
 .cover-print-ui {
-    display: none;
+    position: absolute;
+    opacity: 0;
+    z-index: -9999;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+    overflow: hidden;
 }
 
 @media print {
@@ -427,21 +433,26 @@ body {
         display: none !important;
     }
     
+    .page-cover {
+        display: block !important;
+        height: 100vh !important;
+        width: 100vw !important;
+    }
+
     .cover-print-ui {
-        display: flex !important;
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        justify-content: center;
-        align-items: center;
-        background: white; /* Important for clean printing */
+        position: relative !important;
+        opacity: 1 !important;
+        z-index: 1 !important;
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
     }
     
     .cover-print-ui img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Change to cover if they want edge-to-edge, contain if they want to preserve aspect ratio. Wait, a PDF is A4. The image looks A4. cover is better for edge-to-edge. */
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        display: block !important;
     }
 }
 
