@@ -1354,8 +1354,8 @@ body {
     }
 
     .page {
-        page-break-after: always;
         animation: none;
+        page-break-after: auto;
     }
 
     .editable:empty::before {
