@@ -74,11 +74,9 @@ body {
 /* --- App Container --- */
 #app {
     position: relative;
-    width: min(96vw, 1200px);
-    height: min(96vh, 850px);
+    width: 100vw;
+    height: 100vh;
     background: var(--bg-white);
-    box-shadow: var(--shadow-hard);
-    border-radius: var(--radius-md);
     overflow: hidden;
     display: grid;
     grid-template-columns: 1fr var(--tab-width);
@@ -1291,19 +1289,55 @@ body {
    ============================================================ */
 @media (max-width: 768px) {
     :root {
-        --tab-width: 30px;
         --nav-height: 40px;
         --page-padding: 16px;
     }
 
+    #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: var(--nav-height) 1fr 45px var(--footer-height);
+    }
+
+    #month-tabs {
+        grid-column: 1;
+        grid-row: 3;
+        flex-direction: row;
+        border-left: none;
+        border-top: 1px solid var(--border-light);
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .month-tab {
+        flex: 0 0 60px;
+        font-size: 10px;
+        letter-spacing: 0;
+        border-bottom: none;
+        border-right: 1px solid var(--border-light);
+    }
+    
+    .month-tab.active::before {
+        left: 0;
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        height: 3px;
+    }
+
+    .month-tab.section-tab {
+        font-size: 9px;
+        border-top: none;
+        border-left: 2px solid var(--border-medium);
+    }
+
     .cover-title h1 {
         font-size: 36px;
-        letter-spacing: 8px;
+        letter-spacing: 4px;
     }
 
     .cover-title h1 span {
         font-size: 42px;
-        letter-spacing: 12px;
+        letter-spacing: 6px;
     }
 
     .page-daily {
@@ -1317,14 +1351,7 @@ body {
         border-bottom: 1px solid var(--border-light);
         padding-bottom: 16px;
     }
-
-    .month-tab {
-        font-size: 6px;
-        letter-spacing: 0;
-    }
-}
-
-@media (max-width: 480px) {
+    
     .week-grid {
         grid-template-columns: 1fr;
     }
