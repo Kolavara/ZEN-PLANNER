@@ -941,23 +941,102 @@ function setupButtons() {
     if (btnMusic && bgAudio) {
         bgAudio.volume = 0.2; // Pleasant background volume
         
-        const playlist = [
-            "puyopuyomegafan1234-japanese-jazz-2-385180.mp3",
-            "alanajordan-exactly-like-this-309141.mp3",
-            "music-for-videos-japanese-lofi-jazz-calm-piano-beats-chill-and-smooth-340494.mp3",
-            "onesevenbeatxs-senso-trap-japanese-warrior-rap-beat-prod-by-onesevenbeatxs-328644.mp3"
-        ];
+        let playlist = [];
         let currentTrack = 0;
-        bgAudio.src = playlist[currentTrack];
+
+        const defaultTracks = [
+            { url: "puyopuyomegafan1234-japanese-jazz-2-385180.mp3", title: "Japanese Jazz", is_default: true },
+            { url: "alanajordan-exactly-like-this-309141.mp3", title: "Exactly Like This", is_default: true },
+            { url: "music-for-videos-japanese-lofi-jazz-calm-piano-beats-chill-and-smooth-340494.mp3", title: "Lofi Calm Piano", is_default: true },
+            { url: "onesevenbeatxs-senso-trap-japanese-warrior-rap-beat-prod-by-onesevenbeatxs-328644.mp3", title: "Senso Trap", is_default: true }
+        ];
+
+        const renderPlaylist = () => {
+            const container = document.getElementById('playlist-container');
+            if (!container) return;
+            container.innerHTML = '';
+            playlist.forEach((track, index) => {
+                const li = document.createElement('li');
+                li.className = `playlist-item ${index === currentTrack ? 'active' : ''}`;
+                
+                const playIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+                const playingIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+
+                const actionBtn = document.createElement('button');
+                actionBtn.className = 'btn-track-action';
+                actionBtn.innerHTML = (index === currentTrack && !bgAudio.paused) ? playingIcon : playIcon;
+                actionBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (index === currentTrack) {
+                        toggleMusic();
+                    } else {
+                        playTrack(index);
+                    }
+                };
+
+                const nameDisplay = document.createElement('div');
+                nameDisplay.className = 'track-name-display';
+                nameDisplay.textContent = track.title;
+                nameDisplay.title = track.title;
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-track-action';
+                editBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+                
+                editBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.className = 'track-name-input';
+                    input.value = track.title;
+                    li.replaceChild(input, nameDisplay);
+                    input.focus();
+                    
+                    const saveName = async () => {
+                        const newName = input.value.trim() || track.title;
+                        track.title = newName;
+                        li.replaceChild(nameDisplay, input);
+                        nameDisplay.textContent = newName;
+                        
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                            await supabase.from('planner_playlist').update({ title: newName }).eq('id', track.id);
+                        }
+                    };
+                    input.onblur = saveName;
+                    input.onkeydown = (ev) => { if (ev.key === 'Enter') input.blur(); };
+                };
+
+                li.appendChild(actionBtn);
+                li.appendChild(nameDisplay);
+                li.appendChild(editBtn);
+                
+                li.onclick = () => { if (index !== currentTrack) playTrack(index); };
+                
+                container.appendChild(li);
+            });
+        };
+
+        const playTrack = (index) => {
+            if (playlist.length === 0) return;
+            currentTrack = index;
+            bgAudio.src = playlist[currentTrack].file_url || playlist[currentTrack].url;
+            bgAudio.play().then(() => {
+                iconMusicOn.style.display = 'block';
+                iconMusicOff.style.display = 'none';
+                localStorage.setItem('zen-music', 'on');
+                renderPlaylist();
+            }).catch(e => console.log('Audio play blocked:', e));
+        };
 
         bgAudio.addEventListener('ended', () => {
+            if (playlist.length === 0) return;
             currentTrack = (currentTrack + 1) % playlist.length;
-            bgAudio.src = playlist[currentTrack];
+            bgAudio.src = playlist[currentTrack].file_url || playlist[currentTrack].url;
             setTimeout(() => {
                 if (localStorage.getItem('zen-music') === 'on') {
-                    bgAudio.play().catch(e => console.log('Autoplay next track blocked:', e));
+                    bgAudio.play().then(() => renderPlaylist()).catch(e => console.log('Autoplay blocked:', e));
                 }
-            }, 2000); // 2 second gap
+            }, 2000);
         });
 
         const toggleMusic = () => {
@@ -966,26 +1045,122 @@ function setupButtons() {
                     iconMusicOn.style.display = 'block';
                     iconMusicOff.style.display = 'none';
                     localStorage.setItem('zen-music', 'on');
+                    renderPlaylist();
                 }).catch(e => console.log('Audio play blocked:', e));
             } else {
                 bgAudio.pause();
                 iconMusicOn.style.display = 'none';
                 iconMusicOff.style.display = 'block';
                 localStorage.setItem('zen-music', 'off');
+                renderPlaylist();
             }
         };
 
         btnMusic.addEventListener('click', toggleMusic);
 
+        const loadPlaylist = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return; 
+
+            const { data, error } = await supabase.from('planner_playlist').select('*').order('order_index', { ascending: true });
+            
+            if (!error && data && data.length > 0) {
+                playlist = data;
+            } else {
+                playlist = [];
+                for (let i = 0; i < defaultTracks.length; i++) {
+                    const track = defaultTracks[i];
+                    const { data: inserted } = await supabase.from('planner_playlist').insert({
+                        user_id: user.id,
+                        title: track.title,
+                        file_url: track.url,
+                        is_default: track.is_default,
+                        order_index: i
+                    }).select().single();
+                    if (inserted) playlist.push(inserted);
+                }
+            }
+            if (playlist.length > 0 && !bgAudio.src) {
+                bgAudio.src = playlist[currentTrack].file_url || playlist[currentTrack].url;
+            }
+            renderPlaylist();
+        };
+        
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                loadPlaylist();
+            }
+        });
+
+        loadPlaylist();
+
         if (localStorage.getItem('zen-music') === 'on') {
             const attemptPlay = () => {
-                bgAudio.play().then(() => {
-                    iconMusicOn.style.display = 'block';
-                    iconMusicOff.style.display = 'none';
-                }).catch(() => {});
+                if (playlist.length > 0 && bgAudio.src) {
+                    bgAudio.play().then(() => {
+                        iconMusicOn.style.display = 'block';
+                        iconMusicOff.style.display = 'none';
+                        renderPlaylist();
+                    }).catch(() => {});
+                }
                 document.removeEventListener('click', attemptPlay);
             };
             document.addEventListener('click', attemptPlay);
+        }
+
+        const audioUpload = document.getElementById('audio-upload');
+        if (audioUpload) {
+            audioUpload.addEventListener('change', async (e) => {
+                const files = e.target.files;
+                if (!files.length) return;
+                
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert('You must be logged in to upload audio.');
+                    return;
+                }
+
+                const label = document.querySelector('.btn-add-audio');
+                const originalLabel = label.innerHTML;
+                label.innerHTML = 'Uploading...';
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const fileName = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                    
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('audio_tracks')
+                        .upload(fileName, file);
+                        
+                    if (uploadError) {
+                        console.error('Upload error:', uploadError);
+                        alert(`Failed to upload ${file.name}`);
+                        continue;
+                    }
+
+                    const { data: urlData } = supabase.storage
+                        .from('audio_tracks')
+                        .getPublicUrl(fileName);
+
+                    const newTrackTitle = `Audio ${playlist.length + 1}`;
+                    
+                    const { data: inserted, error: dbError } = await supabase.from('planner_playlist').insert({
+                        user_id: user.id,
+                        title: newTrackTitle,
+                        file_url: urlData.publicUrl,
+                        is_default: false,
+                        order_index: playlist.length
+                    }).select().single();
+
+                    if (inserted && !dbError) {
+                        playlist.push(inserted);
+                    }
+                }
+                
+                label.innerHTML = originalLabel;
+                renderPlaylist();
+                audioUpload.value = ''; 
+            });
         }
     }
 
