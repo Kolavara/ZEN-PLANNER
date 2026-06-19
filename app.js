@@ -940,6 +940,26 @@ function setupButtons() {
 
     if (btnMusic && bgAudio) {
         bgAudio.volume = 0.2; // Pleasant background volume
+        
+        const playlist = [
+            "puyopuyomegafan1234-japanese-jazz-2-385180.mp3",
+            "alanajordan-exactly-like-this-309141.mp3",
+            "music-for-videos-japanese-lofi-jazz-calm-piano-beats-chill-and-smooth-340494.mp3",
+            "onesevenbeatxs-senso-trap-japanese-warrior-rap-beat-prod-by-onesevenbeatxs-328644.mp3"
+        ];
+        let currentTrack = 0;
+        bgAudio.src = playlist[currentTrack];
+
+        bgAudio.addEventListener('ended', () => {
+            currentTrack = (currentTrack + 1) % playlist.length;
+            bgAudio.src = playlist[currentTrack];
+            setTimeout(() => {
+                if (localStorage.getItem('zen-music') === 'on') {
+                    bgAudio.play().catch(e => console.log('Autoplay next track blocked:', e));
+                }
+            }, 2000); // 2 second gap
+        });
+
         const toggleMusic = () => {
             if (bgAudio.paused) {
                 bgAudio.play().then(() => {
