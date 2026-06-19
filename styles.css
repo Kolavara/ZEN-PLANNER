@@ -66,7 +66,7 @@ body.bw-mode {
     --accent-warm: #666666;
 }
 
-body.bw-mode .cover-bg {
+body.bw-mode #app {
     filter: grayscale(100%);
 }
 
