@@ -453,7 +453,7 @@ body {
     }
 
     .cover-print-ui {
-        position: fixed !important;
+        position: absolute !important;
         top: 0;
         left: 0;
         opacity: 1 !important;
