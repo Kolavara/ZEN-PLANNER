@@ -321,7 +321,7 @@ function renderCover(container) {
         <div class="cover-overlay"></div>
         <div class="cover-title">
             <h1><span>Zen</span>Planner</h1>
-            <div class="cover-subtitle">undated — ${CURRENT_YEAR}</div>
+            <div class="cover-subtitle">${CURRENT_YEAR} Edition</div>
         </div>
         <div class="cover-credit">JDRAO</div>
     `;
