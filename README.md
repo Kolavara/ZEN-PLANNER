@@ -8,6 +8,12 @@
 live now : https://zen-planner.onrender.com
 ## ✨ Features
 
+### 🆕 New Additions
+- **Dynamic Year Engine** — Automatically detects the current year (e.g., 2026), calculates leap years, and perfectly aligns daily/weekly pages to the exact dates. Seamlessly rolls over on January 1st!
+- **True Black & White Mode** — Instantly strip away all color for a pure, distraction-free grayscale aesthetic via the top navigation toggle.
+- **Immersive Full-Screen Layout** — Built as a modern web app that fills your screen edge-to-edge.
+- **Responsive Mobile UI** — Layout intelligently adapts to phones and tablets, converting sidebars into horizontal scrollable strips.
+
 ### 📖 Comprehensive Planning System
 - **Monthly Calendars** — Dynamic 12-month calendar views with clickable day navigation
 - **Monthly Goals** — Set top 3 goals, track action items, and reflect on progress
