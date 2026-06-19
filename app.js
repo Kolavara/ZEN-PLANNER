@@ -1010,6 +1010,34 @@ function setupButtons() {
                 li.appendChild(nameDisplay);
                 li.appendChild(editBtn);
                 
+                if (!track.is_default) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-track-action';
+                    deleteBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Are you sure you want to delete "${track.title}"?`)) return;
+                        const { data: { user } } = await supabaseClient.auth.getUser();
+                        if (user) {
+                            await supabaseClient.from('planner_playlist').delete().eq('id', track.id);
+                            const path = track.file_url.split('/audio_tracks/')[1];
+                            if (path) await supabaseClient.storage.from('audio_tracks').remove([path]);
+                            
+                            playlist.splice(index, 1);
+                            if (currentTrack === index) {
+                                bgAudio.pause();
+                                bgAudio.src = '';
+                                iconMusicOn.style.display = 'none';
+                                iconMusicOff.style.display = 'block';
+                            } else if (currentTrack > index) {
+                                currentTrack--;
+                            }
+                            renderPlaylist();
+                        }
+                    };
+                    li.appendChild(deleteBtn);
+                }
+                
                 li.onclick = () => { if (index !== currentTrack) playTrack(index); };
                 
                 container.appendChild(li);
@@ -1058,32 +1086,57 @@ function setupButtons() {
 
         btnMusic.addEventListener('click', toggleMusic);
 
+        let isLoadingPlaylist = false;
         const loadPlaylist = async () => {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) return; 
+            if (isLoadingPlaylist) return;
+            isLoadingPlaylist = true;
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user) return; 
 
-            const { data, error } = await supabaseClient.from('planner_playlist').select('*').order('order_index', { ascending: true });
-            
-            if (!error && data && data.length > 0) {
-                playlist = data;
-            } else {
-                playlist = [];
-                for (let i = 0; i < defaultTracks.length; i++) {
-                    const track = defaultTracks[i];
-                    const { data: inserted } = await supabaseClient.from('planner_playlist').insert({
-                        user_id: user.id,
-                        title: track.title,
-                        file_url: track.url,
-                        is_default: track.is_default,
-                        order_index: i
-                    }).select().single();
-                    if (inserted) playlist.push(inserted);
+                const { data, error } = await supabaseClient.from('planner_playlist').select('*').order('order_index', { ascending: true });
+                
+                if (!error && data && data.length > 0) {
+                    const seenUrls = new Set();
+                    const toKeep = [];
+                    const toDelete = [];
+                    for (const track of data) {
+                        if (track.is_default) {
+                            if (seenUrls.has(track.file_url)) {
+                                toDelete.push(track.id);
+                            } else {
+                                seenUrls.add(track.file_url);
+                                toKeep.push(track);
+                            }
+                        } else {
+                            toKeep.push(track);
+                        }
+                    }
+                    if (toDelete.length > 0) {
+                        supabaseClient.from('planner_playlist').delete().in('id', toDelete).then(() => {});
+                    }
+                    playlist = toKeep;
+                } else {
+                    playlist = [];
+                    for (let i = 0; i < defaultTracks.length; i++) {
+                        const track = defaultTracks[i];
+                        const { data: inserted } = await supabaseClient.from('planner_playlist').insert({
+                            user_id: user.id,
+                            title: track.title,
+                            file_url: track.url,
+                            is_default: track.is_default,
+                            order_index: i
+                        }).select().single();
+                        if (inserted) playlist.push(inserted);
+                    }
                 }
+                if (playlist.length > 0 && (!bgAudio.src || bgAudio.src.includes('undefined'))) {
+                    bgAudio.src = playlist[currentTrack]?.file_url || playlist[currentTrack]?.url || '';
+                }
+                renderPlaylist();
+            } finally {
+                isLoadingPlaylist = false;
             }
-            if (playlist.length > 0 && !bgAudio.src) {
-                bgAudio.src = playlist[currentTrack].file_url || playlist[currentTrack].url;
-            }
-            renderPlaylist();
         };
         
         supabaseClient.auth.onAuthStateChange((event, session) => {
