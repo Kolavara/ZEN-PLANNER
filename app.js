@@ -997,9 +997,9 @@ function setupButtons() {
                         li.replaceChild(nameDisplay, input);
                         nameDisplay.textContent = newName;
                         
-                        const { data: { user } } = await supabase.auth.getUser();
+                        const { data: { user } } = await supabaseClient.auth.getUser();
                         if (user) {
-                            await supabase.from('planner_playlist').update({ title: newName }).eq('id', track.id);
+                            await supabaseClient.from('planner_playlist').update({ title: newName }).eq('id', track.id);
                         }
                     };
                     input.onblur = saveName;
@@ -1059,10 +1059,10 @@ function setupButtons() {
         btnMusic.addEventListener('click', toggleMusic);
 
         const loadPlaylist = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user) return; 
 
-            const { data, error } = await supabase.from('planner_playlist').select('*').order('order_index', { ascending: true });
+            const { data, error } = await supabaseClient.from('planner_playlist').select('*').order('order_index', { ascending: true });
             
             if (!error && data && data.length > 0) {
                 playlist = data;
@@ -1070,7 +1070,7 @@ function setupButtons() {
                 playlist = [];
                 for (let i = 0; i < defaultTracks.length; i++) {
                     const track = defaultTracks[i];
-                    const { data: inserted } = await supabase.from('planner_playlist').insert({
+                    const { data: inserted } = await supabaseClient.from('planner_playlist').insert({
                         user_id: user.id,
                         title: track.title,
                         file_url: track.url,
@@ -1086,7 +1086,7 @@ function setupButtons() {
             renderPlaylist();
         };
         
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             if (session) {
                 loadPlaylist();
             }
@@ -1114,7 +1114,7 @@ function setupButtons() {
                 const files = e.target.files;
                 if (!files.length) return;
                 
-                const { data: { user } } = await supabase.auth.getUser();
+                const { data: { user } } = await supabaseClient.auth.getUser();
                 if (!user) {
                     alert('You must be logged in to upload audio.');
                     return;
@@ -1128,7 +1128,7 @@ function setupButtons() {
                     const file = files[i];
                     const fileName = `${user.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
                     
-                    const { data: uploadData, error: uploadError } = await supabase.storage
+                    const { data: uploadData, error: uploadError } = await supabaseClient.storage
                         .from('audio_tracks')
                         .upload(fileName, file);
                         
@@ -1138,13 +1138,13 @@ function setupButtons() {
                         continue;
                     }
 
-                    const { data: urlData } = supabase.storage
+                    const { data: urlData } = supabaseClient.storage
                         .from('audio_tracks')
                         .getPublicUrl(fileName);
 
                     const newTrackTitle = `Audio ${playlist.length + 1}`;
                     
-                    const { data: inserted, error: dbError } = await supabase.from('planner_playlist').insert({
+                    const { data: inserted, error: dbError } = await supabaseClient.from('planner_playlist').insert({
                         user_id: user.id,
                         title: newTrackTitle,
                         file_url: urlData.publicUrl,
