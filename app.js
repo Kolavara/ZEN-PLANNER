@@ -932,6 +932,43 @@ function setupButtons() {
     document.getElementById('btn-print').addEventListener('click', () => {
         window.print();
     });
+
+    const btnMusic = document.getElementById('btn-music');
+    const bgAudio = document.getElementById('bg-audio');
+    const iconMusicOn = document.getElementById('icon-music-on');
+    const iconMusicOff = document.getElementById('icon-music-off');
+
+    if (btnMusic && bgAudio) {
+        bgAudio.volume = 0.2; // Pleasant background volume
+        const toggleMusic = () => {
+            if (bgAudio.paused) {
+                bgAudio.play().then(() => {
+                    iconMusicOn.style.display = 'block';
+                    iconMusicOff.style.display = 'none';
+                    localStorage.setItem('zen-music', 'on');
+                }).catch(e => console.log('Audio play blocked:', e));
+            } else {
+                bgAudio.pause();
+                iconMusicOn.style.display = 'none';
+                iconMusicOff.style.display = 'block';
+                localStorage.setItem('zen-music', 'off');
+            }
+        };
+
+        btnMusic.addEventListener('click', toggleMusic);
+
+        if (localStorage.getItem('zen-music') === 'on') {
+            const attemptPlay = () => {
+                bgAudio.play().then(() => {
+                    iconMusicOn.style.display = 'block';
+                    iconMusicOff.style.display = 'none';
+                }).catch(() => {});
+                document.removeEventListener('click', attemptPlay);
+            };
+            document.addEventListener('click', attemptPlay);
+        }
+    }
+
     document.getElementById('btn-theme').addEventListener('click', () => {
         const isBw = document.body.classList.toggle('bw-mode');
         localStorage.setItem('zen-bw-mode', isBw);
