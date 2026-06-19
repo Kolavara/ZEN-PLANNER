@@ -932,6 +932,10 @@ function setupButtons() {
     document.getElementById('btn-print').addEventListener('click', () => {
         window.print();
     });
+    document.getElementById('btn-theme').addEventListener('click', () => {
+        const isBw = document.body.classList.toggle('bw-mode');
+        localStorage.setItem('zen-bw-mode', isBw);
+    });
     document.getElementById('btn-logout').addEventListener('click', () => {
         signOut();
     });
@@ -948,6 +952,10 @@ function setupKeyboard() {
 
 // ─── Initialization ─────────────────────────────────────────
 function init() {
+    if (localStorage.getItem('zen-bw-mode') === 'true') {
+        document.body.classList.add('bw-mode');
+    }
+
     buildTabs();
     setupButtons();
     setupKeyboard();

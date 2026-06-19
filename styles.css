@@ -46,6 +46,30 @@
     --transition-medium: 300ms var(--ease-out);
 }
 
+/* --- Black & White Theme Override --- */
+body.bw-mode {
+    --bg-canvas: #f0f0f0;
+    --bg-paper: #ffffff;
+    --bg-cream: #fafafa;
+    --border-light: #e0e0e0;
+    --border-medium: #cccccc;
+    --border-dark: #999999;
+    --text-primary: #000000;
+    --text-secondary: #444444;
+    --text-muted: #888888;
+    --text-placeholder: #bbbbbb;
+    --accent-green: #333333;
+    --accent-green-dark: #000000;
+    --accent-green-light: #666666;
+    --accent-green-pale: #f0f0f0;
+    --accent-sage: #999999;
+    --accent-warm: #666666;
+}
+
+body.bw-mode .cover-bg {
+    filter: grayscale(100%);
+}
+
 /* --- Reset & Base --- */
 *, *::before, *::after {
     box-sizing: border-box;
