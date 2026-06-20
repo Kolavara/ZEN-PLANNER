@@ -939,16 +939,21 @@ async function setupAIAssistant() {
 
     btnAi.addEventListener('click', () => {
         console.log('AI Button clicked! currentPageId:', currentPageId);
+        const isAutoFillPage = currentPageId.startsWith('day-') || 
+                               currentPageId.startsWith('week-') || 
+                               currentPageId.startsWith('month-goals-') || 
+                               currentPageId.startsWith('notes-');
+
         // Update modal title to reflect context
         if (modalTitle) {
             if (currentPageId.startsWith('day-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Daily Planner)';
             else if (currentPageId.startsWith('week-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Weekly Planner)';
-            else if (currentPageId.startsWith('goals-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Monthly Goals)';
+            else if (currentPageId.startsWith('month-goals-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Monthly Goals)';
             else if (currentPageId.startsWith('notes-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Notes)';
             else modalTitle.textContent = 'AI Assistant';
         }
 
-        input.placeholder = (currentPageId !== 'cover' && currentPageId !== 'toc') 
+        input.placeholder = isAutoFillPage 
             ? "Enter a goal to auto-plan this page..." 
             : "Enter a large goal to break down...";
 
@@ -969,18 +974,17 @@ async function setupAIAssistant() {
         const goal = input.value.trim();
         if (!goal) return;
 
-        const isAutoFill = (currentPageId !== 'cover' && currentPageId !== 'toc');
-        if (isAutoFill) {
-            const confirmMsg = "This will overwrite existing content in the auto-filled fields on this page. Are you sure you want to proceed?";
-            if (!confirm(confirmMsg)) return;
-        }
+        const isAutoFillPage = currentPageId.startsWith('day-') || 
+                               currentPageId.startsWith('week-') || 
+                               currentPageId.startsWith('month-goals-') || 
+                               currentPageId.startsWith('notes-');
 
         submitBtn.disabled = true;
         input.disabled = true;
         resultsContainer.innerHTML = `
             <div class="ai-loading">
                 <div class="ai-spinner"></div>
-                <span>${isAutoFill ? 'Auto-planning this page...' : 'Breaking down goal with AI...'}</span>
+                <span>${isAutoFillPage ? 'Auto-planning this page...' : 'Breaking down goal with AI...'}</span>
             </div>
         `;
 
