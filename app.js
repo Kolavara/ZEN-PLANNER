@@ -935,7 +935,20 @@ async function setupAIAssistant() {
 
     if (!btnAi || !modal) return;
 
+    const modalTitle = modal.querySelector('h2');
+
     btnAi.addEventListener('click', () => {
+        // Update modal title to reflect context
+        if (currentPageId.startsWith('day-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Daily Planner)';
+        else if (currentPageId.startsWith('week-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Weekly Planner)';
+        else if (currentPageId.startsWith('goals-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Monthly Goals)';
+        else if (currentPageId.startsWith('notes-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Notes)';
+        else modalTitle.innerText = 'AI Assistant';
+
+        input.placeholder = (currentPageId !== 'cover' && currentPageId !== 'toc') 
+            ? "Enter a goal to auto-plan this page..." 
+            : "Enter a large goal to break down...";
+
         modal.classList.remove('hidden');
         input.focus();
     });
@@ -952,32 +965,54 @@ async function setupAIAssistant() {
         const goal = input.value.trim();
         if (!goal) return;
 
+        const isAutoFill = (currentPageId !== 'cover' && currentPageId !== 'toc');
+        if (isAutoFill) {
+            const confirmMsg = "This will overwrite existing content in the auto-filled fields on this page. Are you sure you want to proceed?";
+            if (!confirm(confirmMsg)) return;
+        }
+
         submitBtn.disabled = true;
         input.disabled = true;
         resultsContainer.innerHTML = `
             <div class="ai-loading">
                 <div class="ai-spinner"></div>
-                <span>Breaking down goal with AI...</span>
+                <span>${isAutoFill ? 'Auto-planning this page...' : 'Breaking down goal with AI...'}</span>
             </div>
         `;
 
         try {
             const { data, error } = await supabaseClient.functions.invoke('ai-assistant', {
-                body: { goal }
+                body: { goal, contextPageId: currentPageId }
             });
 
             if (error) throw error;
             
-            if (!data || !Array.isArray(data)) {
+            if (Array.isArray(data)) {
+                resultsContainer.innerHTML = data.map((step, idx) => `
+                    <div class="ai-step">
+                        <span class="ai-step-number">Step ${idx + 1}:</span>
+                        <span>${step}</span>
+                    </div>
+                `).join('');
+            } else if (typeof data === 'object') {
+                // Auto-fill logic
+                let fieldsFilled = 0;
+                for (const [key, value] of Object.entries(data)) {
+                    const el = document.querySelector(`[data-field="${currentPageId}_${key}"]`);
+                    if (el) {
+                        el.innerHTML = value;
+                        DataSync.set(currentPageId, key, value);
+                        fieldsFilled++;
+                    }
+                }
+                resultsContainer.innerHTML = `
+                    <div style="color: #059669; padding: 12px; background: #d1fae5; border-radius: 6px; font-size: 13px;">
+                        Successfully auto-filled ${fieldsFilled} fields on this page!
+                    </div>
+                `;
+            } else {
                 throw new Error('Invalid response format from AI');
             }
-
-            resultsContainer.innerHTML = data.map((step, idx) => `
-                <div class="ai-step">
-                    <span class="ai-step-number">Step ${idx + 1}:</span>
-                    <span>${step}</span>
-                </div>
-            `).join('');
             
             input.value = '';
 
@@ -985,7 +1020,7 @@ async function setupAIAssistant() {
             console.error('AI Error:', err);
             resultsContainer.innerHTML = `
                 <div style="color: #ef4444; padding: 12px; background: #fee2e2; border-radius: 6px; font-size: 13px;">
-                    Failed to breakdown goal: ${err.message || 'Unknown error'}
+                    Failed to plan: ${err.message || 'Unknown error'}
                 </div>
             `;
         } finally {
