@@ -938,6 +938,7 @@ async function setupAIAssistant() {
     const modalTitle = modal.querySelector('h2');
 
     btnAi.addEventListener('click', () => {
+        console.log('AI Button clicked! currentPageId:', currentPageId);
         // Update modal title to reflect context
         if (currentPageId.startsWith('day-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Daily Planner)';
         else if (currentPageId.startsWith('week-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Weekly Planner)';
@@ -949,6 +950,7 @@ async function setupAIAssistant() {
             ? "Enter a goal to auto-plan this page..." 
             : "Enter a large goal to break down...";
 
+        console.log('Removing hidden class from modal');
         modal.classList.remove('hidden');
         input.focus();
     });
