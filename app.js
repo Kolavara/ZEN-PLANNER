@@ -962,7 +962,7 @@ async function setupAIAssistant() {
         `;
 
         try {
-            const { data, error } = await supabase.functions.invoke('ai-assistant', {
+            const { data, error } = await supabaseClient.functions.invoke('ai-assistant', {
                 body: { goal }
             });
 
