@@ -935,16 +935,18 @@ async function setupAIAssistant() {
 
     if (!btnAi || !modal) return;
 
-    const modalTitle = modal.querySelector('h2');
+    const modalTitle = modal.querySelector('.ai-header');
 
     btnAi.addEventListener('click', () => {
         console.log('AI Button clicked! currentPageId:', currentPageId);
         // Update modal title to reflect context
-        if (currentPageId.startsWith('day-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Daily Planner)';
-        else if (currentPageId.startsWith('week-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Weekly Planner)';
-        else if (currentPageId.startsWith('goals-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Monthly Goals)';
-        else if (currentPageId.startsWith('notes-')) modalTitle.innerText = 'AI Assistant (Auto-Fill Notes)';
-        else modalTitle.innerText = 'AI Assistant';
+        if (modalTitle) {
+            if (currentPageId.startsWith('day-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Daily Planner)';
+            else if (currentPageId.startsWith('week-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Weekly Planner)';
+            else if (currentPageId.startsWith('goals-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Monthly Goals)';
+            else if (currentPageId.startsWith('notes-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Notes)';
+            else modalTitle.textContent = 'AI Assistant';
+        }
 
         input.placeholder = (currentPageId !== 'cover' && currentPageId !== 'toc') 
             ? "Enter a goal to auto-plan this page..." 
