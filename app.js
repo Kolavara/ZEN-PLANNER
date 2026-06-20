@@ -924,7 +924,83 @@ function renderNotes(container, num) {
     });
 }
 
-// ─── Setup Handlers ─────────────────────────────────────────
+// --- AI Assistant Handler ---
+async function setupAIAssistant() {
+    const btnAi = document.getElementById('btn-ai');
+    const modal = document.getElementById('ai-modal');
+    const closeBtn = document.getElementById('ai-close-btn');
+    const input = document.getElementById('ai-goal-input');
+    const submitBtn = document.getElementById('ai-submit-btn');
+    const resultsContainer = document.getElementById('ai-results-container');
+
+    if (!btnAi || !modal) return;
+
+    btnAi.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        input.focus();
+    });
+
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.add('hidden');
+    });
+
+    submitBtn.addEventListener('click', async () => {
+        const goal = input.value.trim();
+        if (!goal) return;
+
+        submitBtn.disabled = true;
+        input.disabled = true;
+        resultsContainer.innerHTML = `
+            <div class="ai-loading">
+                <div class="ai-spinner"></div>
+                <span>Breaking down goal with AI...</span>
+            </div>
+        `;
+
+        try {
+            const { data, error } = await supabase.functions.invoke('ai-assistant', {
+                body: { goal }
+            });
+
+            if (error) throw error;
+            
+            if (!data || !Array.isArray(data)) {
+                throw new Error('Invalid response format from AI');
+            }
+
+            resultsContainer.innerHTML = data.map((step, idx) => `
+                <div class="ai-step">
+                    <span class="ai-step-number">Step ${idx + 1}:</span>
+                    <span>${step}</span>
+                </div>
+            `).join('');
+            
+            input.value = '';
+
+        } catch (err) {
+            console.error('AI Error:', err);
+            resultsContainer.innerHTML = `
+                <div style="color: #ef4444; padding: 12px; background: #fee2e2; border-radius: 6px; font-size: 13px;">
+                    Failed to breakdown goal: ${err.message || 'Unknown error'}
+                </div>
+            `;
+        } finally {
+            submitBtn.disabled = false;
+            input.disabled = false;
+            input.focus();
+        }
+    });
+
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitBtn.click();
+    });
+}
+
+// 🌿 Setup Handlers 🌿
 function setupButtons() {
     document.getElementById('btn-prev').addEventListener('click', () => {
         navigate(pageNumberToId(pageIdToNumber(currentPageId) - 1));
@@ -1252,6 +1328,7 @@ function init() {
     buildTabs();
     setupButtons();
     setupKeyboard();
+    setupAIAssistant();
     
     // Auth integration
     onAuthChange(async (user) => {
