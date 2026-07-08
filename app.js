@@ -1026,11 +1026,36 @@ async function setupAIAssistant() {
                 snapshot.fields[fieldKey] = el.innerHTML;
             });
 
-            const { data, error } = await supabaseClient.functions.invoke('ai-assistant', {
-                body: { goal, contextPageId: currentPageId }
-            });
+            // Call AI Edge Function directly with retry
+            const aiUrl = `${SUPABASE_URL}/functions/v1/ai-assistant`;
+            const aiHeaders = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY
+            };
+            const aiBody = JSON.stringify({ goal, contextPageId: currentPageId });
 
-            if (error) throw error;
+            let response;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    response = await fetch(aiUrl, {
+                        method: 'POST',
+                        headers: aiHeaders,
+                        body: aiBody
+                    });
+                    break; // success, exit retry loop
+                } catch (fetchErr) {
+                    if (attempt === 1) throw new Error('Network error: Could not reach AI service. Check your internet connection.');
+                    await new Promise(r => setTimeout(r, 1000)); // wait 1s before retry
+                }
+            }
+
+            if (!response.ok) {
+                const errBody = await response.json().catch(() => ({}));
+                throw new Error(errBody.error || `AI service error (${response.status})`);
+            }
+
+            const data = await response.json();
             if (data && data.error) throw new Error(data.error);
 
             if (typeof data === 'object' && !Array.isArray(data)) {
