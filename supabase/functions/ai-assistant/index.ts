@@ -39,10 +39,10 @@ The JSON object must use exactly these keys, mapping them to brief, concise stri
 - "cat-delegate": (Task to delegate)
 - "cat-schedule": (Task to schedule)
 - "cat-eliminate": (Task to eliminate)
-- "sched-0" to "sched-13": (Hourly schedule starting from 6:00 AM to 7:00 PM. e.g. "sched-0" = 6AM, "sched-1" = 7AM, etc. Leave empty string if no task for that hour)
+- "desc-0" to "desc-13": (Hourly schedule starting from 6:00 AM to 7:00 PM. e.g. "desc-0" = 6AM, "desc-1" = 7AM, etc. Leave empty string if no task for that hour)
 
 Example output format:
-{ "mx-iu": "Finish quarterly report", "sched-3": "9:00 AM - Deep work on report" }`
+{ "mx-iu": "Finish quarterly report", "desc-3": "9:00 AM - Deep work on report" }`
       } else if (contextPageId.startsWith('week-')) {
         isAutoFill = true
         systemInstruction = 'You only output raw JSON objects mapping field keys to string values.'
@@ -75,23 +75,33 @@ The JSON object must use exactly these keys:
         prompt = `You are an assistant generating notes based on a prompt: "${goal}".
 Return ONLY a raw JSON object containing exactly one key "content" mapping to the generated notes formatted with HTML tags like <br> and <b>.
 Example: { "content": "Notes go here..." }`
+      } else if (contextPageId.startsWith('habit-')) {
+        isAutoFill = true
+        systemInstruction = 'You only output raw JSON objects mapping field keys to string values.'
+        prompt = `You are a habit-building expert. Based on the user's goal: "${goal}", suggest 12 specific daily habits that would help achieve this goal.
+Return ONLY a raw JSON object (no markdown) with these exact keys:
+- "name-0" to "name-11": (each a short, actionable daily habit name, max 25 characters)
+
+Good habits are specific and measurable. Example for goal "get fit":
+{ "name-0": "30 min morning run", "name-1": "Drink 2L water", "name-2": "No sugar after 6PM", "name-3": "10 min stretching", "name-4": "Track calories", "name-5": "8 hours sleep", "name-6": "Take stairs not lift", "name-7": "Meal prep Sunday", "name-8": "15 min walk after lunch", "name-9": "No phone in bed", "name-10": "Morning weigh-in", "name-11": "Evening reflection" }`
+      } else if (contextPageId.match(/^month-\d+$/)) {
+        isAutoFill = true
+        const monthNum = parseInt(contextPageId.split('-')[1])
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+        const monthName = monthNames[(monthNum - 1) % 12]
+        const daysInMonth = [31,28,31,30,31,30,31,31,30,31,30,31][(monthNum - 1) % 12]
+        systemInstruction = 'You only output raw JSON objects mapping field keys to string values.'
+        prompt = `You are a planning assistant. The user wants to plan their month of ${monthName} around this goal: "${goal}".
+Return ONLY a raw JSON object (no markdown). Use these keys:
+- "cell-1" to "cell-${daysInMonth}": (short event/task for that day of the month. Use empty string "" for days with nothing planned. Plan at least 8-12 days with meaningful tasks spread across the month.)
+- "notes": (brief monthly notes or reminders)
+
+Be realistic — don't overschedule. Leave rest days empty. Keep each entry under 30 characters.`
       }
     }
 
     if (!isAutoFill) {
-      systemInstruction = 'You only output raw JSON objects.'
-      prompt = `You are a productivity expert. Break down the following large goal into exactly 3 actionable, concise steps.
-Return the result ONLY as a raw JSON object containing a key "steps" which maps to a JSON array of exactly 3 strings. Do not include any markdown formatting, backticks, or explanatory text.
-Example output format:
-{
-  "steps": [
-    "Step 1 description",
-    "Step 2 description",
-    "Step 3 description"
-  ]
-}
-
-Goal: ${goal}`
+      throw new Error('AI is not available on this page type')
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -128,18 +138,7 @@ Goal: ${goal}`
       throw new Error('AI failed to return valid JSON')
     }
 
-    if (!isAutoFill) {
-      if (result.steps && Array.isArray(result.steps)) {
-        return new Response(JSON.stringify(result.steps), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      } else {
-        const values = Object.values(result).filter(v => typeof v === 'string')
-        return new Response(JSON.stringify(values.slice(0, 3)), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
-    }
+
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

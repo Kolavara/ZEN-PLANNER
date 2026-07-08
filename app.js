@@ -180,6 +180,10 @@ function handleHashChange() {
     updateTabs(hash);
     updateBreadcrumbs(hash);
     updatePageCounter(hash);
+    // Show/hide AI button based on page support
+    if (typeof window._updateAIButtonVisibility === 'function') {
+        window._updateAIButtonVisibility();
+    }
 }
 
 function getMonthFromPageId(id) {
@@ -937,27 +941,58 @@ async function setupAIAssistant() {
 
     const modalTitle = modal.querySelector('.ai-header');
 
-    btnAi.addEventListener('click', () => {
-        console.log('AI Button clicked! currentPageId:', currentPageId);
-        const isAutoFillPage = currentPageId.startsWith('day-') || 
-                               currentPageId.startsWith('week-') || 
-                               currentPageId.startsWith('month-goals-') || 
-                               currentPageId.startsWith('notes-');
+    // Store undo snapshots: { pageId, fields: { key: oldValue } }
+    let undoSnapshot = null;
 
-        // Update modal title to reflect context
+    function isAISupportedPage(pageId) {
+        return pageId.startsWith('day-') ||
+               pageId.startsWith('week-') ||
+               pageId.startsWith('month-goals-') ||
+               pageId.startsWith('notes-') ||
+               pageId.startsWith('habit-') ||
+               (pageId.match(/^month-\d+$/) && !pageId.includes('goals'));
+    }
+
+    function getPageLabel(pageId) {
+        if (pageId.startsWith('day-')) return 'Daily Planner';
+        if (pageId.startsWith('week-')) return 'Weekly Planner';
+        if (pageId.startsWith('month-goals-')) return 'Monthly Goals';
+        if (pageId.startsWith('habit-')) return 'Habit Tracker';
+        if (pageId.match(/^month-\d+$/)) return 'Monthly Calendar';
+        if (pageId.startsWith('notes-')) return 'Notes';
+        return '';
+    }
+
+    function getPlaceholder(pageId) {
+        if (pageId.startsWith('day-')) return 'e.g. "Prepare for job interview tomorrow"';
+        if (pageId.startsWith('week-')) return 'e.g. "Launch my portfolio website this week"';
+        if (pageId.startsWith('month-goals-')) return 'e.g. "Get fit and lose 5kg"';
+        if (pageId.startsWith('habit-')) return 'e.g. "Build a healthier lifestyle"';
+        if (pageId.match(/^month-\d+$/)) return 'e.g. "Prepare for final exams"';
+        if (pageId.startsWith('notes-')) return 'e.g. "Brainstorm startup ideas for a food delivery app"';
+        return 'Enter your goal...';
+    }
+
+    // Update AI button visibility on page change
+    window._updateAIButtonVisibility = function() {
+        if (isAISupportedPage(currentPageId)) {
+            btnAi.style.display = '';
+            btnAi.title = `AI Auto-Fill: ${getPageLabel(currentPageId)}`;
+        } else {
+            btnAi.style.display = 'none';
+        }
+    };
+
+    btnAi.addEventListener('click', () => {
+        if (!isAISupportedPage(currentPageId)) return;
+
+        const label = getPageLabel(currentPageId);
         if (modalTitle) {
-            if (currentPageId.startsWith('day-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Daily Planner)';
-            else if (currentPageId.startsWith('week-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Weekly Planner)';
-            else if (currentPageId.startsWith('month-goals-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Monthly Goals)';
-            else if (currentPageId.startsWith('notes-')) modalTitle.textContent = 'AI Assistant (Auto-Fill Notes)';
-            else modalTitle.textContent = 'AI Assistant';
+            modalTitle.textContent = `✨ AI Auto-Fill: ${label}`;
         }
 
-        input.placeholder = isAutoFillPage 
-            ? "Enter a goal to auto-plan this page..." 
-            : "Enter a large goal to break down...";
-
-        console.log('Removing hidden class from modal');
+        input.placeholder = getPlaceholder(currentPageId);
+        resultsContainer.innerHTML = '';
         modal.classList.remove('hidden');
         input.focus();
     });
@@ -974,36 +1009,31 @@ async function setupAIAssistant() {
         const goal = input.value.trim();
         if (!goal) return;
 
-        const isAutoFillPage = currentPageId.startsWith('day-') || 
-                               currentPageId.startsWith('week-') || 
-                               currentPageId.startsWith('month-goals-') || 
-                               currentPageId.startsWith('notes-');
-
         submitBtn.disabled = true;
         input.disabled = true;
         resultsContainer.innerHTML = `
             <div class="ai-loading">
                 <div class="ai-spinner"></div>
-                <span>${isAutoFillPage ? 'Auto-planning this page...' : 'Breaking down goal with AI...'}</span>
+                <span>Auto-planning your ${getPageLabel(currentPageId).toLowerCase()}...</span>
             </div>
         `;
 
         try {
+            // Save snapshot for undo BEFORE filling
+            const snapshot = { pageId: currentPageId, fields: {} };
+            document.querySelectorAll(`[data-field^="${currentPageId}_"]`).forEach(el => {
+                const fieldKey = el.getAttribute('data-field').replace(`${currentPageId}_`, '');
+                snapshot.fields[fieldKey] = el.innerHTML;
+            });
+
             const { data, error } = await supabaseClient.functions.invoke('ai-assistant', {
                 body: { goal, contextPageId: currentPageId }
             });
 
             if (error) throw error;
-            
-            if (Array.isArray(data)) {
-                resultsContainer.innerHTML = data.map((step, idx) => `
-                    <div class="ai-step">
-                        <span class="ai-step-number">Step ${idx + 1}:</span>
-                        <span>${step}</span>
-                    </div>
-                `).join('');
-            } else if (typeof data === 'object') {
-                // Auto-fill logic
+            if (data && data.error) throw new Error(data.error);
+
+            if (typeof data === 'object' && !Array.isArray(data)) {
                 let fieldsFilled = 0;
                 for (const [key, value] of Object.entries(data)) {
                     const el = document.querySelector(`[data-field="${currentPageId}_${key}"]`);
@@ -1013,11 +1043,39 @@ async function setupAIAssistant() {
                         fieldsFilled++;
                     }
                 }
+
+                // Save undo snapshot only if we actually filled fields
+                if (fieldsFilled > 0) {
+                    undoSnapshot = snapshot;
+                }
+
                 resultsContainer.innerHTML = `
-                    <div style="color: #059669; padding: 12px; background: #d1fae5; border-radius: 6px; font-size: 13px;">
-                        Successfully auto-filled ${fieldsFilled} fields on this page!
+                    <div style="color: #059669; padding: 12px; background: #d1fae5; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <span>✅ Auto-filled ${fieldsFilled} fields on this page!</span>
+                        <button id="ai-undo-btn" style="background: #065f46; color: #d1fae5; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; white-space: nowrap;">↩ Undo</button>
                     </div>
                 `;
+
+                // Wire up undo button
+                const undoBtn = document.getElementById('ai-undo-btn');
+                if (undoBtn) {
+                    undoBtn.addEventListener('click', () => {
+                        if (!undoSnapshot) return;
+                        for (const [key, oldValue] of Object.entries(undoSnapshot.fields)) {
+                            const el = document.querySelector(`[data-field="${undoSnapshot.pageId}_${key}"]`);
+                            if (el) {
+                                el.innerHTML = oldValue;
+                                DataSync.set(undoSnapshot.pageId, key, oldValue);
+                            }
+                        }
+                        resultsContainer.innerHTML = `
+                            <div style="color: #d97706; padding: 12px; background: #fef3c7; border-radius: 8px; font-size: 13px;">
+                                ↩ Reverted all fields to their previous state.
+                            </div>
+                        `;
+                        undoSnapshot = null;
+                    });
+                }
             } else {
                 throw new Error('Invalid response format from AI');
             }
@@ -1027,8 +1085,8 @@ async function setupAIAssistant() {
         } catch (err) {
             console.error('AI Error:', err);
             resultsContainer.innerHTML = `
-                <div style="color: #ef4444; padding: 12px; background: #fee2e2; border-radius: 6px; font-size: 13px;">
-                    Failed to plan: ${err.message || 'Unknown error'}
+                <div style="color: #ef4444; padding: 12px; background: #fee2e2; border-radius: 8px; font-size: 13px;">
+                    ❌ Failed to plan: ${err.message || 'Unknown error'}
                 </div>
             `;
         } finally {
@@ -1238,7 +1296,7 @@ function setupButtons() {
                         }
                     }
                     if (toDelete.length > 0) {
-                        supabaseClient.from('planner_playlist').delete().in('id', toDelete).then(() => {});
+                        supabaseClient.from('planner_playlist').delete().in('id', toDelete).then(() => {}).catch(err => console.error('Delete error:', err));
                     }
                     playlist = toKeep;
                 } else {
@@ -1259,6 +1317,8 @@ function setupButtons() {
                     bgAudio.src = playlist[currentTrack]?.file_url || playlist[currentTrack]?.url || '';
                 }
                 renderPlaylist();
+            } catch (err) {
+                console.error('Playlist load error:', err);
             } finally {
                 isLoadingPlaylist = false;
             }
@@ -1384,6 +1444,7 @@ function init() {
             
             await DataSync.loadAll();
             
+            window.removeEventListener('hashchange', handleHashChange);
             window.addEventListener('hashchange', handleHashChange);
             handleHashChange();
         } else {
