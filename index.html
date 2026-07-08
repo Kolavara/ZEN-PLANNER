@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
     <!-- Authentication Overlay -->
@@ -111,12 +111,21 @@
         </div>
     </div>
 
+    <!-- Physical Mouse Scroll Wheel Navigation -->
+    <div id="physical-scroll-wheel-container" class="hidden" title="Scroll to navigate notes">
+        <div class="mouse-wheel-housing">
+            <div class="mouse-wheel" id="physical-scroll-wheel">
+                <div class="wheel-texture"></div>
+            </div>
+        </div>
+    </div>
+
     <audio id="bg-audio"></audio>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js?v=9"></script>
     <script src="supabase.js?v=9"></script>
     <script src="auth.js?v=9"></script>
-    <script src="app.js?v=19"></script>
+    <script src="app.js?v=20"></script>
 </body>
 </html>

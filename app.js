@@ -184,6 +184,16 @@ function handleHashChange() {
     if (typeof window._updateAIButtonVisibility === 'function') {
         window._updateAIButtonVisibility();
     }
+    
+    // Show/hide physical scroll wheel based on page (only on notes pages)
+    const wheelContainer = document.getElementById('physical-scroll-wheel-container');
+    if (wheelContainer) {
+        if (currentPageId.startsWith('notes-')) {
+            wheelContainer.classList.remove('hidden');
+        } else {
+            wheelContainer.classList.add('hidden');
+        }
+    }
 }
 
 function getMonthFromPageId(id) {
@@ -1457,6 +1467,7 @@ function init() {
     setupButtons();
     setupKeyboard();
     setupAIAssistant();
+    setupScrollWheel();
     
     // Auth integration
     onAuthChange(async (user) => {
@@ -1484,3 +1495,41 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function setupScrollWheel() {
+    const container = document.getElementById('physical-scroll-wheel-container');
+    const wheelTexture = document.querySelector('.wheel-texture');
+    if (!container || !wheelTexture) return;
+
+    let currentRotation = 0;
+    
+    container.addEventListener('wheel', (e) => {
+        // Prevent page scrolling while hovering over the wheel
+        e.preventDefault();
+        
+        // Ensure we are on a notes page
+        if (!currentPageId.startsWith('notes-')) return;
+        
+        const delta = Math.sign(e.deltaY); // 1 for down, -1 for up
+        if (delta === 0) return;
+        
+        // Animate the wheel texture (pseudo 3D rotation)
+        // A standard mouse wheel notch scrolls by roughly 10-20px visually
+        currentRotation += delta * -20; // Reverse so down scroll moves texture up (looks like wheel rotating down towards you)
+        wheelTexture.style.backgroundPositionY = `${currentRotation}px`;
+        
+        // Calculate new page
+        const currentNoteNum = parseInt(currentPageId.split('-')[1], 10);
+        let targetNoteNum = currentNoteNum;
+        
+        if (delta > 0) {
+            targetNoteNum = Math.min(60, currentNoteNum + 1);
+        } else {
+            targetNoteNum = Math.max(1, currentNoteNum - 1);
+        }
+        
+        if (targetNoteNum !== currentNoteNum) {
+            navigate(`notes-${targetNoteNum}`);
+        }
+    }, { passive: false });
+}
